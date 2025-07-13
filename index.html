@@ -167,60 +167,84 @@
         <button type="submit">Submit</button>
     </form>
 
-    <script>
-        document.getElementById("aero-form").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            
-            try {
-                // 1. Handle file upload first
-                let fileData = null;
-                const fileInput = document.getElementById('file-upload');
-                if (fileInput.files[0]) {
-                    const uploadResponse = await uploadToDrive(fileInput.files[0]);
-                    fileData = JSON.stringify([[ 
-                        uploadResponse.id, 
-                        fileInput.files[0].name,
-                        fileInput.files[0].type,
-                        1 
-                    ]]);
-                }
+<script>
+  document.getElementById("aero-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    
+    try {
+      // 1. Handle file upload first
+      let fileData = null;
+      const fileInput = document.getElementById('file-upload');
+      if (fileInput.files[0]) {
+        const file = fileInput.files[0];
+        const fileBase64 = await toBase64(file);
+        const uploadResponse = await uploadToDrive(fileBase64, file.name, file.type);
+        
+        fileData = JSON.stringify([
+          [
+            [
+              uploadResponse.id,
+              file.name,
+              file.type,
+              1
+            ]
+          ]
+        ]);
+      }
 
-                // 2. Submit to Google Forms
-                const formData = new URLSearchParams();
-                formData.append('entry.726004286', e.target.name.value);
-                formData.append('entry.959984559', e.target.email.value);
-                if (fileData) formData.append('entry.13261251', fileData);
+      // 2. Submit to Google Forms
+      const formData = new URLSearchParams();
+      formData.append('entry.726004286', e.target.name.value);
+      formData.append('entry.959984559', e.target.email.value);
+      if (fileData) formData.append('entry.13261251', fileData);
 
-                await fetch('https://docs.google.com/forms/d/e/1FAIpQLSdoLGp0W9G1BPanE9T_75eFvKOLae1UeJyA2_sCbpgPmYypMw/formResponse', {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: formData
-                });
-                
-                alert('Submitted successfully!');
-                e.target.reset();
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Submission failed: ' + error.message);
-            }
-        });
+      await fetch('https://docs.google.com/forms/d/e/1FAIpQLSdoLGp0W9G1BPanE9T_75eFvKOLae1UeJyA2_sCbpgPmYypMw/formResponse', {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData
+      });
+      
+      alert('Submitted successfully!');
+      e.target.reset();
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Submission failed: ' + error.message);
+    }
+  });
 
-        async function uploadToDrive(file) {
-            const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxaksolyrbf9EJ5nhzuUDScDFLmy5uIMLgSnulx6KLBX7Q0o25lg0AHJxDLf4b_1DJaRg/exec';
-            const formData = new FormData();
-            formData.append('file', file);
+  // Convert file to base64
+  function toBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = error => reject(error);
+    });
+  }
 
-            const response = await fetch(APPS_SCRIPT_URL, {
-                method: 'POST',
-                body: formData
-            });
+  async function uploadToDrive(fileBase64, filename, mimeType) {
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxDB-02G0cwUKWMxct_Wkpe-iVhqOVnp3iut3FhfsjWPKkKbilS0cT4ylm68klWcqcdMg/exec';
+    
+    const payload = {
+      file: fileBase64,
+      filename: filename,
+      mimeType: mimeType
+    };
 
-            if (!response.ok) {
-                throw new Error(`Upload failed with status ${response.status}`);
-            }
-            return await response.json();
-        }
-    </script>
+    const response = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Upload failed with status ${response.status}`);
+    }
+    return await response.json();
+  }
+</script>
 </body>
 </html>
