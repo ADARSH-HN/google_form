@@ -1,0 +1,3 @@
+https://docs.google.com/forms/d/e/1FAIpQLSdoLGp0W9G1BPanE9T_75eFvKOLae1UeJyA2_sCbpgPmYypMw/formResponse
+entry.726004286=name_aero_club
+entry.959984559=email_aero_club
